@@ -17,7 +17,7 @@ Note: This function expects you're following the practice that an ECS Service is
 2. Implement the following module 
 
         module "ecs_deploy" {
-          source    = "git::ssh://git@github.com:justmiles/ecs-deploy.git?ref=master//tfmodule"
+          source    = "git::ssh://git@github.com/justmiles/ecs-deploy.git?ref=master//tfmodule"
           s3_bucket = "my-s3-bucket"
           s3_key    = "LAMBDA_ARTIFACTS/ecs-deploy/ecs-deploy-v0.1.0.zip"
         }
