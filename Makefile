@@ -1,5 +1,6 @@
 NAME=ecs-deploy
 VERSION=`git tag | tail -1`
+DATE=`date +"%Y%m%d_%H%M%S"`
 DOCKER_ARGS=--name $(NAME) \
 	--rm \
 	-v "`pwd`/build":/var/task \
@@ -21,6 +22,14 @@ clean:
 test: clean build
 	docker run $(DOCKER_ARGS) "`cat test/direct-invocation.json`"
 	
+invoke:
+	mkdir -p lambda_output
+	aws lambda invoke \
+		--function-name "ecs-deploy" \
+		--log-type "Tail" \
+		--payload '{ "Application": "myapp", "Version": "latest", "Environment": "ops" }' lambda_output/$(DATE).log \
+		| jq -r '.LogResult' | base64 -d
+
 testall: install
 	for test in `ls test`; do echo "\n\n================\n$$test\n\n"; docker run $(DOCKER_ARGS) "`cat test/$$test`"; done
 	
