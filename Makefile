@@ -1,4 +1,5 @@
 NAME=ecs-deploy
+VERSION=`git tag | tail -1`
 DOCKER_ARGS=--name $(NAME) \
 	--rm \
 	-v "`pwd`/build":/var/task \
@@ -12,7 +13,7 @@ build:
 	go build -o build/$(NAME) ./src
 	
 zip: build
-	zip build/ecs-deploy build/ecs-deploy
+	cd build && zip ecs-deploy-$(VERSION).zip ecs-deploy
 
 clean:
 	rm -rf build
