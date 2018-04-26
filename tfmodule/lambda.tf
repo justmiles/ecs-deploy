@@ -6,6 +6,10 @@ resource "aws_lambda_function" "ecs_deploy" {
   handler          = "ecs-deploy"
   source_code_hash = "${var.source_code_hash}"
   runtime          = "go1.x"
+
+  lifecycle {
+    ignore_changes = ["last_modified"]
+  }
 }
 
 variable "s3_bucket" {
