@@ -8,7 +8,7 @@ After you've deployed this as a Lambda function it can be invoked with the follo
   - Version - desired version
   - Environment - name of target environment (ECS Cluster)
 
-Note: This function expects you're following the practice that an ECS Service is in the format <env>-<application>
+Note: This function expects you're following the practice that an ECS Service is in the format `<env>-<application>`
 
 ## Terraform Module
 
