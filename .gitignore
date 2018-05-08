@@ -1,3 +1,4 @@
 build
 env.sh
 lambda_output
+dist
