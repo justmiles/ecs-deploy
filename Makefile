@@ -1,5 +1,5 @@
 NAME=ecs-deploy
-VERSION=`git tag | tail -1`
+VERSION=latest
 DATE=`date +"%Y%m%d_%H%M%S"`
 TEST_JSON='{ "Application": "bender", "Version": "latest", "Environment": "ops" }'
 DOCKER_ARGS=--name $(NAME) \
@@ -35,5 +35,9 @@ invoke:
 
 clean:
 	rm -rf build
+
+release:
+	git tag -a $(VERSION) -m "release version $(VERSION)" && git push origin $(VERSION)
+	goreleaser --rm-dist
 
 .PHONY: test testall
