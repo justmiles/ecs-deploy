@@ -1,4 +1,4 @@
-package main
+package deployer
 
 import (
 	"encoding/json"
@@ -7,33 +7,45 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/ssm"
 )
 
-func performDeployment(depOpts DeploymentOptions) (s string, err error) {
+var (
+	defaultDescription = "desired version set by lambda ecs-deploy"
+	sess               = session.Must(session.NewSession())
+)
+
+// PerformDeployment initiates an ECS deployment by
+//    setting desired version in SSM Parameter Store /<env>/<app>/VERSION
+//    bumping the image version in task definition
+//    registering new task definition with the ECS service
+func PerformDeployment(depOpts DeploymentOptions) (s string, err error) {
 	var deploymentResults DeploymentResults
+	// Set the desired application version
+	err = setDesiredVersion(depOpts)
+	if err != nil {
+		return s, err
+	}
+
 	svc := ecs.New(sess)
 
 	// Get the ECS Service
 	dsi := &ecs.DescribeServicesInput{
 		Cluster: aws.String(depOpts.Environment),
 		Services: []*string{
-			aws.String(fmt.Sprintf("%s-%s", depOpts.Environment, depOpts.Application)),
+			aws.String(depOpts.Application),
 		},
 	}
 	dso, err := svc.DescribeServices(dsi)
 	if err != nil {
 		return s, err
 	}
-
 	if len(dso.Failures) > 0 {
 		log.Println(dso.Failures)
 		return s, fmt.Errorf("unable to find service %s in cluster %s", depOpts.Application, depOpts.Environment)
 	}
-
-	log.Println(*dso.Services[0].TaskDefinition)
-	log.Printf("%T", dso.Services[0])
 
 	// Get the ECS service's full task definition
 	dtdi := &ecs.DescribeTaskDefinitionInput{
@@ -80,7 +92,6 @@ func performDeployment(depOpts DeploymentOptions) (s string, err error) {
 		TaskDefinition:                rtdo.TaskDefinition.TaskDefinitionArn,
 	}
 	uso, err := svc.UpdateService(usi)
-	log.Println(uso)
 	if err != nil {
 		return s, err
 	}

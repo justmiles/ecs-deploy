@@ -1,6 +1,7 @@
 NAME=ecs-deploy
 VERSION=`git tag | tail -1`
 DATE=`date +"%Y%m%d_%H%M%S"`
+TEST_JSON='{ "Application": "bender", "Version": "latest", "Environment": "ops" }'
 DOCKER_ARGS=--name $(NAME) \
 	--rm \
 	-v "`pwd`/build":/var/task \
@@ -10,27 +11,29 @@ DOCKER_ARGS=--name $(NAME) \
 	-e AWS_SESSION_TOKEN \
 	lambci/lambda:go1.x $(NAME)
 
-build: 
+build: clean
 	go build -o build/$(NAME) ./src
 	
 zip: build
-	cd build && zip ecs-deploy-$(VERSION).zip ecs-deploy
+	cd build && zip lambda-ecs-deploy-$(VERSION).zip ecs-deploy && rm ecs-deploy
 
-clean:
-	rm -rf build
+test-cli: clean
+	go build -o build/$(NAME) ./src
+	./build/ecs-deploy ship -a asdf -v latest -e ops --debug
 
-test: clean build
-	docker run $(DOCKER_ARGS) "`cat test/direct-invocation.json`"
-	
+test: clean
+	go build -o build/$(NAME) ./src
+	docker run $(DOCKER_ARGS) $(TEST_JSON)
+
 invoke:
 	mkdir -p lambda_output
 	aws lambda invoke \
 		--function-name "ecs-deploy" \
 		--log-type "Tail" \
-		--payload '{ "Application": "myapp", "Version": "latest", "Environment": "ops" }' lambda_output/$(DATE).log \
+		--payload $(TEST_JSON) lambda_output/$(DATE).log \
 		| jq -r '.LogResult' | base64 -d
 
-testall: install
-	for test in `ls test`; do echo "\n\n================\n$$test\n\n"; docker run $(DOCKER_ARGS) "`cat test/$$test`"; done
-	
+clean:
+	rm -rf build
+
 .PHONY: test testall
