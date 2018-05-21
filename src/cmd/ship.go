@@ -68,7 +68,9 @@ var shipCmd = &cobra.Command{
 		if depRes.SuccessfullyInvoked {
 
 			if !noWait {
-				var sess = session.Must(session.NewSession())
+				var sess = session.Must(session.NewSessionWithOptions(session.Options{
+					SharedConfigState: session.SharedConfigEnable,
+				}))
 
 				fmt.Println("Waiting for service to reach stable state")
 

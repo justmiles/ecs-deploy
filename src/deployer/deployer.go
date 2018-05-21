@@ -14,7 +14,9 @@ import (
 
 var (
 	defaultDescription = "desired version set by lambda ecs-deploy"
-	sess               = session.Must(session.NewSession())
+	sess               = session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
 )
 
 // PerformDeployment initiates an ECS deployment by
