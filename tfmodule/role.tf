@@ -49,7 +49,8 @@ variable "iam_policy" {
             "ssm:Get*",
             "ssm:Put*",
             "ssm:List*",
-            "iam:PassRole"
+            "iam:PassRole",
+            "kms:Decrypt"
          ],
          "Resource":"*"
       }
