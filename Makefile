@@ -1,5 +1,5 @@
 NAME=ecs-deploy
-VERSION=latest
+VERSION=v0.2.4
 DATE=`date +"%Y%m%d_%H%M%S"`
 TEST_JSON='{ "Application": "bender", "Version": "latest", "Environment": "ops" }'
 DOCKER_ARGS=--name $(NAME) \
