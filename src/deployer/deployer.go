@@ -14,7 +14,9 @@ import (
 
 var (
 	defaultDescription = "desired version set by lambda ecs-deploy"
-	sess               = session.Must(session.NewSession())
+	sess               = session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
 )
 
 // PerformDeployment initiates an ECS deployment by
@@ -65,15 +67,16 @@ func PerformDeployment(depOpts DeploymentOptions) (s string, err error) {
 
 	// Register new task definition
 	rtdi := &ecs.RegisterTaskDefinitionInput{
-		ContainerDefinitions: dtdo.TaskDefinition.ContainerDefinitions,
-		Cpu:                  dtdo.TaskDefinition.Cpu,
-		ExecutionRoleArn:     dtdo.TaskDefinition.ExecutionRoleArn,
-		Family:               dtdo.TaskDefinition.Family,
-		Memory:               dtdo.TaskDefinition.Memory,
-		NetworkMode:          dtdo.TaskDefinition.NetworkMode,
-		PlacementConstraints: dtdo.TaskDefinition.PlacementConstraints,
-		TaskRoleArn:          dtdo.TaskDefinition.TaskRoleArn,
-		Volumes:              dtdo.TaskDefinition.Volumes,
+		ContainerDefinitions:    dtdo.TaskDefinition.ContainerDefinitions,
+		Cpu:                     dtdo.TaskDefinition.Cpu,
+		ExecutionRoleArn:        dtdo.TaskDefinition.ExecutionRoleArn,
+		Family:                  dtdo.TaskDefinition.Family,
+		Memory:                  dtdo.TaskDefinition.Memory,
+		NetworkMode:             dtdo.TaskDefinition.NetworkMode,
+		PlacementConstraints:    dtdo.TaskDefinition.PlacementConstraints,
+		TaskRoleArn:             dtdo.TaskDefinition.TaskRoleArn,
+		Volumes:                 dtdo.TaskDefinition.Volumes,
+		RequiresCompatibilities: dtdo.TaskDefinition.RequiresCompatibilities,
 	}
 	rtdo, err := svc.RegisterTaskDefinition(rtdi)
 	if err != nil {
