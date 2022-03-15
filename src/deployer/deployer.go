@@ -7,14 +7,14 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/ssm"
 )
 
 var (
-	defaultDescription = "desired version set by lambda ecs-deploy"
-	sess               = session.Must(session.NewSessionWithOptions(session.Options{
+	sess = session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
 )
@@ -31,7 +31,14 @@ func PerformDeployment(depOpts DeploymentOptions) (s string, err error) {
 		return s, err
 	}
 
-	svc := ecs.New(sess)
+	var svc *ecs.ECS
+
+	if depOpts.Role != "" {
+		creds := stscreds.NewCredentials(sess, depOpts.Role)
+		svc = ecs.New(sess, &aws.Config{Credentials: creds})
+	} else {
+		svc = ecs.New(sess)
+	}
 
 	// Get the ECS Service
 	dsi := &ecs.DescribeServicesInput{
@@ -44,6 +51,7 @@ func PerformDeployment(depOpts DeploymentOptions) (s string, err error) {
 	if err != nil {
 		return s, err
 	}
+
 	if len(dso.Failures) > 0 {
 		log.Println(dso.Failures)
 		return s, fmt.Errorf("unable to find service %s in cluster %s", depOpts.Application, depOpts.Environment)
@@ -109,8 +117,40 @@ func PerformDeployment(depOpts DeploymentOptions) (s string, err error) {
 	return s, err
 }
 
+func WaitForDeployment(depOpts DeploymentOptions) (err error) {
+
+	var svc *ecs.ECS
+
+	if depOpts.Role != "" {
+		creds := stscreds.NewCredentials(sess, depOpts.Role)
+		svc = ecs.New(sess, &aws.Config{Credentials: creds})
+	} else {
+		svc = ecs.New(sess)
+	}
+
+	err = svc.WaitUntilServicesStable(&ecs.DescribeServicesInput{
+		Cluster: aws.String(depOpts.Environment),
+		Services: []*string{
+			aws.String(depOpts.Application),
+		},
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func setDesiredVersion(depOpts DeploymentOptions) error {
-	svc := ssm.New(sess)
+	var svc *ssm.SSM
+
+	if depOpts.Role != "" {
+		creds := stscreds.NewCredentials(sess, depOpts.Role)
+		svc = ssm.New(sess, &aws.Config{Credentials: creds})
+	} else {
+		svc = ssm.New(sess)
+	}
 
 	input := &ssm.PutParameterInput{
 		Name:        aws.String(fmt.Sprintf("/%s/%s/VERSION", depOpts.Environment, depOpts.Application)),

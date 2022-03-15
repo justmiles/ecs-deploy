@@ -10,6 +10,8 @@ type DeploymentOptions struct {
 	Environment string `json:"Environment"`
 	// Description is an optional parameter adding context to the change
 	Description string `json:"Description"`
+	// Role is the IAM role to use when invoking a deployment.
+	Role string `json:"Role"`
 }
 
 // DeploymentResults maintain the depyments latest results
