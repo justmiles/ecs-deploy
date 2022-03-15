@@ -68,7 +68,11 @@ func PerformDeployment(depOpts DeploymentOptions) (s string, err error) {
 
 	for i, containerDefinition := range dtdo.TaskDefinition.ContainerDefinitions {
 		repoAndVersion := strings.Split(*containerDefinition.Image, ":")
-		repoAndVersion[1] = depOpts.Version
+		if len(repoAndVersion) == 1 {
+			repoAndVersion = append(repoAndVersion, depOpts.Version)
+		} else {
+			repoAndVersion[1] = depOpts.Version
+		}
 		*containerDefinition.Image = strings.Join(repoAndVersion, ":")
 		dtdo.TaskDefinition.ContainerDefinitions[i] = containerDefinition
 	}
