@@ -20,6 +20,11 @@ A fast and flexible tool to deploy to Amazon Web Service's Elastic Container Ser
 
 [Download the build for your machine](https://github.com/justmiles/ecs-deploy/releases), unzip, and add to your `$PATH`
 
+### Homebrew 
+```bash
+brew install chrispruitt/ecs-deploy
+```
+
 ## Usage
 Run `ecs-deploy --help` to view available commands
 
