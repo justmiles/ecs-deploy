@@ -66,16 +66,14 @@ func PerformDeployment(depOpts DeploymentOptions) (s string, err error) {
 		return s, err
 	}
 
-	for i, containerDefinition := range dtdo.TaskDefinition.ContainerDefinitions {
-		repoAndVersion := strings.Split(*containerDefinition.Image, ":")
-		if len(repoAndVersion) == 1 {
-			repoAndVersion = append(repoAndVersion, depOpts.Version)
-		} else {
-			repoAndVersion[1] = depOpts.Version
-		}
-		*containerDefinition.Image = strings.Join(repoAndVersion, ":")
-		dtdo.TaskDefinition.ContainerDefinitions[i] = containerDefinition
+	// Update only first container definition
+	repoAndVersion := strings.Split(*dtdo.TaskDefinition.ContainerDefinitions[0].Image, ":")
+	if len(repoAndVersion) == 1 {
+		repoAndVersion = append(repoAndVersion, depOpts.Version)
+	} else {
+		repoAndVersion[1] = depOpts.Version
 	}
+	*dtdo.TaskDefinition.ContainerDefinitions[0].Image = strings.Join(repoAndVersion, ":")
 
 	// Register new task definition
 	rtdi := &ecs.RegisterTaskDefinitionInput{

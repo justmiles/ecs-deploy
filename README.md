@@ -22,7 +22,7 @@ A fast and flexible tool to deploy to Amazon Web Service's Elastic Container Ser
 
 ### Homebrew 
 ```bash
-brew install chrispruitt/ecs-deploy
+brew install chrispruitt/tap/ecs-deploy
 ```
 
 ## Usage
