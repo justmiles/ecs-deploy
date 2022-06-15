@@ -30,6 +30,8 @@ func init() {
 
 	shipCmd.Flags().StringVarP(&deploymentOptions.Role, "role", "r", "", "An IAM role ARN to assume before invoking a deployment.")
 
+	shipCmd.Flags().IntVar(&deploymentOptions.MaxAttempts, "max-attempts", 40, "Number of attempts (with subsequent 15 sec pause) to wait for service to become stable")
+
 	shipCmd.Flags().BoolVarP(&noWait, "no-wait", "w", false, "Deploy and exit; Do not wait for service to reach stable state")
 
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/ssm"
@@ -130,12 +131,12 @@ func WaitForDeployment(depOpts DeploymentOptions) (err error) {
 		svc = ecs.New(sess)
 	}
 
-	err = svc.WaitUntilServicesStable(&ecs.DescribeServicesInput{
+	err = svc.WaitUntilServicesStableWithContext(aws.BackgroundContext(), &ecs.DescribeServicesInput{
 		Cluster: aws.String(depOpts.Environment),
 		Services: []*string{
 			aws.String(depOpts.Application),
 		},
-	})
+	}, request.WithWaiterMaxAttempts(depOpts.MaxAttempts))
 
 	if err != nil {
 		return err
