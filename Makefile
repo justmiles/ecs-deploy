@@ -1,5 +1,5 @@
 NAME=ecs-deploy
-VERSION=v0.2.5
+VERSION=v0.4.1
 DATE=`date +"%Y%m%d_%H%M%S"`
 TEST_JSON='{ "Application": "bender", "Version": "latest", "Environment": "ops" }'
 DOCKER_ARGS=--name $(NAME) \
@@ -19,7 +19,7 @@ zip: build
 
 test-cli: clean
 	go build -o build/$(NAME) ./src
-	./build/ecs-deploy ship -a asdf -v latest -e ops --debug
+	./build/ecs-deploy ship -a asdf -v latest -e ops --max-attempts 90 --debug
 
 test: clean
 	go build -o build/$(NAME) ./src

@@ -12,6 +12,8 @@ type DeploymentOptions struct {
 	Description string `json:"Description"`
 	// Role is the IAM role to use when invoking a deployment.
 	Role string `json:"Role"`
+	// MaxAttempts is the Number of attempts to wait for service to become stable, with subsequent 15 sec pause.
+	MaxAttempts int `json:"MaxAttempts"`
 }
 
 // DeploymentResults maintain the depyments latest results
