@@ -120,6 +120,55 @@ func PerformDeployment(depOpts DeploymentOptions) (s string, err error) {
 	return s, err
 }
 
+// PerformReDeployment initiates an ECS re-deployment
+func PerformReDeployment(depOpts DeploymentOptions) (s string, err error) {
+	var deploymentResults DeploymentResults
+
+	var svc *ecs.ECS
+
+	if depOpts.Role != "" {
+		creds := stscreds.NewCredentials(sess, depOpts.Role)
+		svc = ecs.New(sess, &aws.Config{Credentials: creds})
+	} else {
+		svc = ecs.New(sess)
+	}
+
+	// Get the ECS Service
+	dsi := &ecs.DescribeServicesInput{
+		Cluster: aws.String(depOpts.Environment),
+		Services: []*string{
+			aws.String(depOpts.Application),
+		},
+	}
+	dso, err := svc.DescribeServices(dsi)
+	if err != nil {
+		return s, err
+	}
+
+	if len(dso.Failures) > 0 {
+		log.Println(dso.Failures)
+		return s, fmt.Errorf("unable to find service %s in cluster %s", depOpts.Application, depOpts.Environment)
+	}
+
+	uso, err := svc.UpdateService(&ecs.UpdateServiceInput{
+		ForceNewDeployment: aws.Bool(true),
+		Cluster:            dso.Services[0].ClusterArn,
+		Service:            dso.Services[0].ServiceArn,
+	})
+	if err != nil {
+		return s, err
+	}
+	deploymentResults.SuccessfullyInvoked = true
+	deploymentResults.ClusterArn = *uso.Service.ClusterArn
+	deploymentResults.ServiceArn = *uso.Service.ServiceArn
+	deploymentResults.ServiceName = *uso.Service.ServiceName
+	deploymentResults.TaskDefinition = *uso.Service.TaskDefinition
+
+	res, err := json.Marshal(deploymentResults)
+	s = string(res)
+	return s, err
+}
+
 func WaitForDeployment(depOpts DeploymentOptions) (err error) {
 
 	var svc *ecs.ECS
