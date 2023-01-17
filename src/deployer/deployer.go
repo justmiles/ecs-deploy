@@ -21,9 +21,10 @@ var (
 )
 
 // PerformDeployment initiates an ECS deployment by
-//    setting desired version in SSM Parameter Store /<env>/<app>/VERSION
-//    bumping the image version in task definition
-//    registering new task definition with the ECS service
+//
+//	setting desired version in SSM Parameter Store /<env>/<app>/VERSION
+//	bumping the image version in task definition
+//	registering new task definition with the ECS service
 func PerformDeployment(depOpts DeploymentOptions) (s string, err error) {
 	var deploymentResults DeploymentResults
 	// Set the desired application version
@@ -93,18 +94,22 @@ func PerformDeployment(depOpts DeploymentOptions) (s string, err error) {
 	if err != nil {
 		return s, err
 	}
-	// Update the service with thte new task definition
+	// Update the service with the new task definition
 	usi := &ecs.UpdateServiceInput{
 		Cluster:                       dso.Services[0].ClusterArn,
 		DeploymentConfiguration:       dso.Services[0].DeploymentConfiguration,
 		DesiredCount:                  dso.Services[0].DesiredCount,
 		ForceNewDeployment:            aws.Bool(true),
-		HealthCheckGracePeriodSeconds: dso.Services[0].HealthCheckGracePeriodSeconds,
 		NetworkConfiguration:          dso.Services[0].NetworkConfiguration,
 		PlatformVersion:               dso.Services[0].PlatformVersion,
 		Service:                       dso.Services[0].ServiceArn,
 		TaskDefinition:                rtdo.TaskDefinition.TaskDefinitionArn,
 	}
+	// If HealthCheckGracePeriodSeconds == 0 (Default), assume that the previous definition did not include a health check.
+	if  *dso.Services[0].HealthCheckGracePeriodSeconds != 0 {
+    usi.HealthCheckGracePeriodSeconds = dso.Services[0].HealthCheckGracePeriodSeconds
+	}
+
 	uso, err := svc.UpdateService(usi)
 	if err != nil {
 		return s, err
