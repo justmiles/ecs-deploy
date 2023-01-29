@@ -34,12 +34,21 @@ func init() {
 
 	shipCmd.Flags().BoolVarP(&noWait, "no-wait", "w", false, "Deploy and exit; Do not wait for service to reach stable state")
 
+	shipCmd.Flags().BoolVar(&deploymentOptions.RefreshSecrets, "refresh-secrets", false, "Replace task defintion secrets with all ssm paramters with a prefix matching the 'secrets-prefix'")
+
+	shipCmd.Flags().BoolVar(&deploymentOptions.DryRun, "dry-run", false, "Show changes without modifying resources.")
+
+	shipCmd.Flags().StringVarP(&deploymentOptions.SecretsPrefix, "secrets-prefix", "p", "", "The ssm parameter store prefix to pull secrets from. Default: \"/<environment>/<application>/\"")
 }
 
 var shipCmd = &cobra.Command{
 	Use:   "ship",
 	Short: "Ship an application to ECS",
 	Run: func(cmd *cobra.Command, args []string) {
+
+		if deploymentOptions.SecretsPrefix == "" {
+			deploymentOptions.SecretsPrefix = fmt.Sprintf("/%s/%s", deploymentOptions.Environment, deploymentOptions.Application)
+		}
 
 		fmt.Printf("Deploying %s@%s to %s\n", deploymentOptions.Application, deploymentOptions.Version, deploymentOptions.Environment)
 		results, err := deployer.PerformDeployment(deploymentOptions)

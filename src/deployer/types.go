@@ -14,6 +14,12 @@ type DeploymentOptions struct {
 	Role string `json:"Role"`
 	// MaxAttempts is the Number of attempts to wait for service to become stable, with subsequent 15 sec pause.
 	MaxAttempts int `json:"MaxAttempts"`
+	// RefreshSecrets will update all container definition secrets to include ssm parameters that exists with the prefix "/<cluster>/service/*"
+	RefreshSecrets bool `json:"RefreshSecrets"`
+	// The ssm parameter store prefix to pull secrets from. Default: "/<cluster>/service/*"
+	SecretsPrefix string `json:"SecretsPrefix"`
+	// DryRun will preview changes
+	DryRun bool `json:"DryRun"`
 }
 
 // DeploymentResults maintain the depyments latest results
