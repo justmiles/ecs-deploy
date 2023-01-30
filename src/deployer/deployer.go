@@ -112,17 +112,36 @@ func PerformDeployment(depOpts DeploymentOptions) (s string, err error) {
 
 	if depOpts.RefreshSecrets {
 
-		containerSecrets, err := getEcsSecretsBySSMPath(depOpts, depOpts.SecretsPrefix)
-
-		// TODO: Get ssm params for each container optionally with contianer name prefix appended to current ssm prefix
-		// TODO: Apply env vars to all containers without the container name prefix
-
+		globalSecrets, err := getEcsSecretsBySSMPath(depOpts, depOpts.SecretsPrefix)
 		if err != nil {
 			fmt.Printf("Error refreshing ssm params: %v", err)
 			os.Exit(1)
 		}
 
-		desiredContainerDefinitions[0].Secrets = containerSecrets
+		for _, dcd := range desiredContainerDefinitions {
+			// Deep copy ecs.secrets, so items in each list are separate and distict memory addresses
+			copyGlobalSecrets, err := copystructure.Copy(globalSecrets)
+			if err != nil {
+				fmt.Printf("Error performing deep copy of container definitions: %v", err)
+				os.Exit(1)
+			}
+			newGlobalSecrets, ok := copyGlobalSecrets.([]*ecs.Secret)
+			if !ok {
+				fmt.Printf("Error converting interface to ecs.ContainerDefinition: %v", err)
+				os.Exit(1)
+			}
+
+			// Get container specific secrets
+			containerSpecificSecrets, err := getEcsSecretsBySSMPath(depOpts, fmt.Sprintf("%s/%s", depOpts.SecretsPrefix, *dcd.Name))
+
+			if err != nil {
+				fmt.Printf("Error getting continaer secret by ssm path: %v", err)
+				os.Exit(1)
+			}
+
+			// Add Secrets to container
+			dcd.Secrets = append(newGlobalSecrets, containerSpecificSecrets...)
+		}
 	}
 
 	// Diff task image version
