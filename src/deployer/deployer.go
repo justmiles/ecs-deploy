@@ -111,34 +111,11 @@ func PerformDeployment(depOpts DeploymentOptions) (s string, err error) {
 	}
 
 	if depOpts.RefreshSecrets {
-		var ssmClient *ssm.SSM
-		if depOpts.Role != "" {
-			creds := stscreds.NewCredentials(sess, depOpts.Role)
-			ssmClient = ssm.New(sess, &aws.Config{Credentials: creds})
-		} else {
-			ssmClient = ssm.New(sess)
-		}
 
-		pageNum := 0
-		containerSecrets := []*ecs.Secret{}
-		err := ssmClient.GetParametersByPathPages(&ssm.GetParametersByPathInput{
-			Path: aws.String(depOpts.SecretsPrefix),
-		},
-			func(page *ssm.GetParametersByPathOutput, lastPage bool) bool {
-				pageNum++
-				for _, v := range page.Parameters {
+		containerSecrets, err := getEcsSecretsBySSMPath(depOpts, depOpts.SecretsPrefix)
 
-					ss := strings.Split(*v.Name, "/")
-					s := ss[len(ss)-1]
-
-					secret := &ecs.Secret{
-						Name:      aws.String(s),
-						ValueFrom: v.ARN,
-					}
-					containerSecrets = append(containerSecrets, secret)
-				}
-				return pageNum <= 100
-			})
+		// TODO: Get ssm params for each container optionally with contianer name prefix appended to current ssm prefix
+		// TODO: Apply env vars to all containers without the container name prefix
 
 		if err != nil {
 			fmt.Printf("Error refreshing ssm params: %v", err)
@@ -146,7 +123,6 @@ func PerformDeployment(depOpts DeploymentOptions) (s string, err error) {
 		}
 
 		desiredContainerDefinitions[0].Secrets = containerSecrets
-
 	}
 
 	// Diff task image version
@@ -321,4 +297,35 @@ func setDesiredVersion(depOpts DeploymentOptions) error {
 	}
 	_, err := svc.PutParameter(input)
 	return err
+}
+
+func getEcsSecretsBySSMPath(depOpts DeploymentOptions, path string) (containerSecrets []*ecs.Secret, err error) {
+	var ssmClient *ssm.SSM
+	if depOpts.Role != "" {
+		creds := stscreds.NewCredentials(sess, depOpts.Role)
+		ssmClient = ssm.New(sess, &aws.Config{Credentials: creds})
+	} else {
+		ssmClient = ssm.New(sess)
+	}
+
+	pageNum := 0
+	err = ssmClient.GetParametersByPathPages(&ssm.GetParametersByPathInput{
+		Path: aws.String(path),
+	},
+		func(page *ssm.GetParametersByPathOutput, lastPage bool) bool {
+			pageNum++
+			for _, v := range page.Parameters {
+
+				ss := strings.Split(*v.Name, "/")
+				s := ss[len(ss)-1]
+
+				secret := &ecs.Secret{
+					Name:      aws.String(s),
+					ValueFrom: v.ARN,
+				}
+				containerSecrets = append(containerSecrets, secret)
+			}
+			return pageNum <= 100
+		})
+	return
 }
