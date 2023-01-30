@@ -150,35 +150,37 @@ func PerformDeployment(depOpts DeploymentOptions) (s string, err error) {
 	}
 
 	// Diff task image version
-	diff := NewDiff("container", *dtdo.TaskDefinition.ContainerDefinitions[0].Name)
 	for index, currentContainerDef := range dtdo.TaskDefinition.ContainerDefinitions {
+		diff := NewDiff("container", *currentContainerDef.Name)
 		diff.AddChange("image", *currentContainerDef.Image, *desiredContainerDefinitions[index].Image)
 
 		// Diff task secrets
-		for _, x := range currentContainerDef.Secrets {
-			found := false
-			for _, y := range desiredContainerDefinitions[index].Secrets {
-				// TODO diff secrets
-				if *x.Name == *y.Name {
-					diff.AddChange(*x.Name, *x.ValueFrom, *y.ValueFrom)
-					found = true
-				}
-			}
-
-			if !found {
-				diff.AddChange(*x.Name, *x.ValueFrom, "")
-			}
-		}
-
-		for _, y := range desiredContainerDefinitions[index].Secrets {
-			found := false
+		if depOpts.RefreshSecrets {
 			for _, x := range currentContainerDef.Secrets {
-				if *x.Name == *y.Name {
-					found = true
+				found := false
+				for _, y := range desiredContainerDefinitions[index].Secrets {
+					// TODO diff secrets
+					if *x.Name == *y.Name {
+						diff.AddChange(*x.Name, *x.ValueFrom, *y.ValueFrom)
+						found = true
+					}
+				}
+
+				if !found {
+					diff.AddChange(*x.Name, *x.ValueFrom, "")
 				}
 			}
-			if !found {
-				diff.AddChange(*y.Name, "", *y.ValueFrom)
+
+			for _, y := range desiredContainerDefinitions[index].Secrets {
+				found := false
+				for _, x := range currentContainerDef.Secrets {
+					if *x.Name == *y.Name {
+						found = true
+					}
+				}
+				if !found {
+					diff.AddChange(*y.Name, "", *y.ValueFrom)
+				}
 			}
 		}
 

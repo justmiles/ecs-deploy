@@ -1,6 +1,6 @@
 NAME=ecs-deploy
-VERSION=v0.6.0
-DATE=`date +"%Y%m%d_%H%M%S"`
+VERSION=v0.6.1
+gitiDATE=`date +"%Y%m%d_%H%M%S"`
 TEST_JSON='{ "Application": "bender", "Version": "latest", "Environment": "ops" }'
 DOCKER_ARGS=--name $(NAME) \
 	--rm \
