@@ -111,42 +111,37 @@ func PerformDeployment(depOpts DeploymentOptions) (s string, err error) {
 	}
 
 	if depOpts.RefreshSecrets {
-		var ssmClient *ssm.SSM
-		if depOpts.Role != "" {
-			creds := stscreds.NewCredentials(sess, depOpts.Role)
-			ssmClient = ssm.New(sess, &aws.Config{Credentials: creds})
-		} else {
-			ssmClient = ssm.New(sess)
-		}
 
-		pageNum := 0
-		containerSecrets := []*ecs.Secret{}
-		err := ssmClient.GetParametersByPathPages(&ssm.GetParametersByPathInput{
-			Path: aws.String(depOpts.SecretsPrefix),
-		},
-			func(page *ssm.GetParametersByPathOutput, lastPage bool) bool {
-				pageNum++
-				for _, v := range page.Parameters {
-
-					ss := strings.Split(*v.Name, "/")
-					s := ss[len(ss)-1]
-
-					secret := &ecs.Secret{
-						Name:      aws.String(s),
-						ValueFrom: v.ARN,
-					}
-					containerSecrets = append(containerSecrets, secret)
-				}
-				return pageNum <= 100
-			})
-
+		globalSecrets, err := getEcsSecretsBySSMPath(depOpts, depOpts.SecretsPrefix)
 		if err != nil {
 			fmt.Printf("Error refreshing ssm params: %v", err)
 			os.Exit(1)
 		}
 
-		desiredContainerDefinitions[0].Secrets = containerSecrets
+		for _, dcd := range desiredContainerDefinitions {
+			// Deep copy ecs.secrets, so items in each list are separate and distict memory addresses
+			copyGlobalSecrets, err := copystructure.Copy(globalSecrets)
+			if err != nil {
+				fmt.Printf("Error performing deep copy of container definitions: %v", err)
+				os.Exit(1)
+			}
+			newGlobalSecrets, ok := copyGlobalSecrets.([]*ecs.Secret)
+			if !ok {
+				fmt.Printf("Error converting interface to ecs.ContainerDefinition: %v", err)
+				os.Exit(1)
+			}
 
+			// Get container specific secrets
+			containerSpecificSecrets, err := getEcsSecretsBySSMPath(depOpts, fmt.Sprintf("%s/%s", depOpts.SecretsPrefix, *dcd.Name))
+
+			if err != nil {
+				fmt.Printf("Error getting continaer secret by ssm path: %v", err)
+				os.Exit(1)
+			}
+
+			// Add Secrets to container
+			dcd.Secrets = append(newGlobalSecrets, containerSpecificSecrets...)
+		}
 	}
 
 	// Diff task image version
@@ -321,4 +316,35 @@ func setDesiredVersion(depOpts DeploymentOptions) error {
 	}
 	_, err := svc.PutParameter(input)
 	return err
+}
+
+func getEcsSecretsBySSMPath(depOpts DeploymentOptions, path string) (containerSecrets []*ecs.Secret, err error) {
+	var ssmClient *ssm.SSM
+	if depOpts.Role != "" {
+		creds := stscreds.NewCredentials(sess, depOpts.Role)
+		ssmClient = ssm.New(sess, &aws.Config{Credentials: creds})
+	} else {
+		ssmClient = ssm.New(sess)
+	}
+
+	pageNum := 0
+	err = ssmClient.GetParametersByPathPages(&ssm.GetParametersByPathInput{
+		Path: aws.String(path),
+	},
+		func(page *ssm.GetParametersByPathOutput, lastPage bool) bool {
+			pageNum++
+			for _, v := range page.Parameters {
+
+				ss := strings.Split(*v.Name, "/")
+				s := ss[len(ss)-1]
+
+				secret := &ecs.Secret{
+					Name:      aws.String(s),
+					ValueFrom: v.ARN,
+				}
+				containerSecrets = append(containerSecrets, secret)
+			}
+			return pageNum <= 100
+		})
+	return
 }
