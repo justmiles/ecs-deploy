@@ -11,6 +11,7 @@ import (
 
 var (
 	noWait            bool
+	ignoreTags        bool
 	deploymentOptions = deployer.DeploymentOptions{
 		Description: "Desired version set by ecs-deploy CLI",
 	}
@@ -38,7 +39,9 @@ func init() {
 
 	shipCmd.Flags().BoolVar(&deploymentOptions.DryRun, "dry-run", false, "Show changes without modifying resources.")
 
-	shipCmd.Flags().StringVarP(&deploymentOptions.SecretsPrefix, "secrets-prefix", "p", "", "The ssm parameter store prefix to pull secrets from. Default: \"/<environment>/<application>/\"")
+	shipCmd.Flags().StringSliceVarP(&deploymentOptions.SecretsPrefix, "secrets-prefix", "p", []string{}, "The ssm parameter store prefix to pull secrets from. Default: \"/<environment>/<application>/\"")
+
+	shipCmd.Flags().BoolVarP(&ignoreTags, "ignore-tags", "i", false, "When present, this will ignore any parameters defined by ecs service tags.")
 }
 
 var shipCmd = &cobra.Command{
@@ -46,11 +49,20 @@ var shipCmd = &cobra.Command{
 	Short: "Ship an application to ECS",
 	Run: func(cmd *cobra.Command, args []string) {
 
-		if deploymentOptions.SecretsPrefix == "" {
-			deploymentOptions.SecretsPrefix = fmt.Sprintf("/%s/%s", deploymentOptions.Environment, deploymentOptions.Application)
+		if !ignoreTags {
+			err := deploymentOptions.SetDeploymentOptionsByEcsServiceTags()
+
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
 		}
 
-		fmt.Printf("Deploying %s@%s to %s\n", deploymentOptions.Application, deploymentOptions.Version, deploymentOptions.Environment)
+		if len(deploymentOptions.SecretsPrefix) == 0 {
+			deploymentOptions.SecretsPrefix = []string{fmt.Sprintf("/%s/%s", deploymentOptions.Environment, deploymentOptions.Application)}
+		}
+
+		fmt.Printf("\nDeploying %s@%s to %s\n", deploymentOptions.Application, deploymentOptions.Version, deploymentOptions.Environment)
 		results, err := deployer.PerformDeployment(deploymentOptions)
 		if err != nil {
 			fmt.Println(err)

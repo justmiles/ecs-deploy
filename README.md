@@ -113,3 +113,33 @@ The secrets in the containers will result in the following:
   ]
 }
 ```
+
+### Support for multiple ssm secret prefixes
+
+The `--secret-prefix` is an array and supports the above pattern for multiple ssm secret prefixes.
+
+### Configuration
+
+You can optionally set some flags via tags on the ECS Service. This enables you to run the ecs-deploy cli from anywhere and be confident the deployment strategy is consitent.
+
+Supported tags are:
+
+- `ecs-deploy:secrets-prefix` colon delimited list of ssm parameters
+- `ecs-deploy:refresh-secrets` boolean
+
+Example:
+
+```json
+{
+  "tags": [
+    {
+      "key": "ecs-deploy:secrets-prefix",
+      "value": "/qa/myservice:/some/other/ssm/prefix"
+    },
+    {
+      "key": "ecs-deploy:refresh-secrets",
+      "value": "true"
+    }
+  ]
+}
+```
