@@ -112,35 +112,44 @@ func PerformDeployment(depOpts DeploymentOptions) (s string, err error) {
 
 	if depOpts.RefreshSecrets {
 
-		globalSecrets, err := getEcsSecretsBySSMPath(depOpts, depOpts.SecretsPrefix)
-		if err != nil {
-			fmt.Printf("Error refreshing ssm params: %v", err)
-			os.Exit(1)
+		for _, dcd := range desiredContainerDefinitions {
+			// Clear all existing secrets
+			dcd.Secrets = []*ecs.Secret{}
 		}
 
-		for _, dcd := range desiredContainerDefinitions {
-			// Deep copy ecs.secrets, so items in each list are separate and distict memory addresses
-			copyGlobalSecrets, err := copystructure.Copy(globalSecrets)
+		for _, secretsPrefix := range depOpts.SecretsPrefix {
+
+			globalSecrets, err := getEcsSecretsBySSMPath(depOpts, secretsPrefix)
 			if err != nil {
-				fmt.Printf("Error performing deep copy of container definitions: %v", err)
-				os.Exit(1)
-			}
-			newGlobalSecrets, ok := copyGlobalSecrets.([]*ecs.Secret)
-			if !ok {
-				fmt.Printf("Error converting interface to ecs.ContainerDefinition: %v", err)
+				fmt.Printf("Error refreshing ssm params: %v", err)
 				os.Exit(1)
 			}
 
-			// Get container specific secrets
-			containerSpecificSecrets, err := getEcsSecretsBySSMPath(depOpts, fmt.Sprintf("%s/%s", depOpts.SecretsPrefix, *dcd.Name))
+			for _, dcd := range desiredContainerDefinitions {
+				// Deep copy ecs.secrets, so items in each list are separate and distict memory addresses
+				copyGlobalSecrets, err := copystructure.Copy(globalSecrets)
+				if err != nil {
+					fmt.Printf("Error performing deep copy of container definitions: %v", err)
+					os.Exit(1)
+				}
+				newGlobalSecrets, ok := copyGlobalSecrets.([]*ecs.Secret)
+				if !ok {
+					fmt.Printf("Error converting interface to ecs.ContainerDefinition: %v", err)
+					os.Exit(1)
+				}
 
-			if err != nil {
-				fmt.Printf("Error getting continaer secret by ssm path: %v", err)
-				os.Exit(1)
+				// Get container specific secrets
+				containerSpecificSecrets, err := getEcsSecretsBySSMPath(depOpts, fmt.Sprintf("%s/%s", secretsPrefix, *dcd.Name))
+
+				if err != nil {
+					fmt.Printf("Error getting continaer secret by ssm path: %v", err)
+					os.Exit(1)
+				}
+
+				// Add Secrets to container
+				dcd.Secrets = append(dcd.Secrets, newGlobalSecrets...)
+				dcd.Secrets = append(dcd.Secrets, containerSpecificSecrets...)
 			}
-
-			// Add Secrets to container
-			dcd.Secrets = append(newGlobalSecrets, containerSpecificSecrets...)
 		}
 	}
 
