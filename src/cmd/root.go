@@ -16,7 +16,7 @@ var rootCmd = &cobra.Command{
 	Use:     "ecs-deploy",
 	Short:   "Deploy something",
 	Long:    `A fast and flexible tool to deploy to Amazon Web Service's Elastic Container Service`,
-	Version: "0.7.1",
+	Version: "0.7.2",
 }
 
 func Execute() {
