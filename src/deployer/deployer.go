@@ -213,7 +213,7 @@ func PerformDeployment(depOpts DeploymentOptions) (s string, err error) {
 		TaskDefinition:          rtdo.TaskDefinition.TaskDefinitionArn,
 	}
 	// If HealthCheckGracePeriodSeconds == 0 (Default), assume that the previous definition did not include a health check.
-	if *dso.Services[0].HealthCheckGracePeriodSeconds != 0 {
+	if dso.Services[0].HealthCheckGracePeriodSeconds != nil && *dso.Services[0].HealthCheckGracePeriodSeconds != 0 {
 		usi.HealthCheckGracePeriodSeconds = dso.Services[0].HealthCheckGracePeriodSeconds
 	}
 
