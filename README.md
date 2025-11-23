@@ -143,3 +143,39 @@ Example:
   ]
 }
 ```
+
+## Development
+
+### Testing
+
+This project includes comprehensive testing across all packages:
+
+- **Unit Tests**: Test individual components and business logic
+- **Integration Tests**: Test CLI functionality end-to-end
+- **Coverage Reports**: Track test coverage across packages
+
+```bash
+# Run all unit tests
+go test ./src/...
+
+# Run with coverage
+go test -cover ./src/...
+
+# Run integration tests
+go test -tags=integration
+
+# Generate coverage report
+go test -coverprofile=coverage.out ./src/...
+go tool cover -html=coverage.out -o coverage.html
+```
+
+See [TESTING.md](TESTING.md) for detailed testing documentation.
+
+### Recent Improvements
+
+- **Updated Dependencies**: Go 1.22, AWS SDK v1.55.8, Cobra v1.10.1
+- **Bug Fixes**: Fixed lambda import issues, diff output formatting, and rollback command
+- **Comprehensive Testing**: Added 71.4% coverage for lambda package, 36.6% for cmd package
+- **Integration Tests**: Full CLI validation and error handling tests
+
+See [CHANGELOG.md](CHANGELOG.md) for complete list of changes and improvements.
