@@ -15,8 +15,10 @@ type Diff struct {
 }
 
 func (diff Diff) String() string {
-	fmt.Println(fmt.Sprintf("\n%s \"%s\" { ", diff.resource, diff.name))
-	return strings.Join(diff.changes, "\n") + "\n}\n"
+	header := fmt.Sprintf("\n%s \"%s\" { ", diff.resource, diff.name)
+	body := strings.Join(diff.changes, "\n")
+	footer := "\n}\n"
+	return header + body + footer
 }
 
 func NewDiff(resource string, name string) Diff {
